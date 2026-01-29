@@ -14,20 +14,29 @@ export default function SchemaDrivenForm({ schema, onSubmit, className }: Schema
   const [formData, setFormData] = useState<FormData>(() => {
     const initialData: FormData = {};
     schema.fields.forEach(field => {
-      initialData[field.name] = field.defaultValue ?? '';
+      if (field.type === 'checkbox') {
+        initialData[field.name] = field.defaultValue ?? false;
+      } else {
+        initialData[field.name] = field.defaultValue ?? '';
+      }
     });
     return initialData;
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validateField = (field: FormField, value: FieldValue): string | undefined => {
     const validation = field.validation;
     if (!validation) return undefined;
 
-    if (validation.required && !value) {
-      return `${field.label} is required`;
+    if (validation.required) {
+      if (typeof value === 'boolean' && !value) {
+        return `${field.label} is required`;
+      } else if (!value) {
+        return `${field.label} is required`;
+      }
     }
 
     if (validation.minLength && typeof value === 'string' && value.length < validation.minLength) {
@@ -80,9 +89,18 @@ export default function SchemaDrivenForm({ schema, onSubmit, className }: Schema
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     
+    let fieldValue: FieldValue;
+    if (type === 'checkbox') {
+      fieldValue = checked;
+    } else if (type === 'number') {
+      fieldValue = value === '' ? '' : Number(value);
+    } else {
+      fieldValue = value;
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: fieldValue
     }));
 
     // Clear error when user starts typing
@@ -103,10 +121,12 @@ export default function SchemaDrivenForm({ schema, onSubmit, className }: Schema
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       await onSubmit(formData);
     } catch (error) {
       console.error('Form submission error:', error);
+      setSubmitError(error instanceof Error ? error.message : 'An error occurred while submitting the form');
     } finally {
       setIsSubmitting(false);
     }
@@ -141,7 +161,7 @@ export default function SchemaDrivenForm({ schema, onSubmit, className }: Schema
             value={String(formData[field.name] || '')}
             onChange={handleChange}
           >
-            <option value="">Select {field.label}</option>
+            <option value="">Choose an option</option>
             {field.options?.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -170,7 +190,7 @@ export default function SchemaDrivenForm({ schema, onSubmit, className }: Schema
                   type="radio"
                   name={field.name}
                   value={option.value}
-                  checked={formData[field.name] === option.value}
+                  checked={String(formData[field.name]) === String(option.value)}
                   onChange={handleChange}
                   disabled={field.disabled || isSubmitting}
                   className={styles.radio}
@@ -236,6 +256,12 @@ export default function SchemaDrivenForm({ schema, onSubmit, className }: Schema
           </div>
         ))}
       </div>
+
+      {submitError && (
+        <p className={styles.error} role="alert">
+          {submitError}
+        </p>
+      )}
 
       <button 
         type="submit" 
