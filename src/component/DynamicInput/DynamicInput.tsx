@@ -2,89 +2,127 @@
 
 import React from 'react';
 import { TextField, Select, MenuItem, Checkbox, FormControlLabel } from '@mui/material';
+import { Controller, Control, FieldValues } from 'react-hook-form';
 import { Row } from '../SchemaDrivenForm/SchemaDrivenForm';
 
-interface DynamicInputProps {
+interface DynamicInputProps<TFieldValues extends FieldValues = FieldValues> {
   row: Row;
-  value?: string | number | boolean;
-  options?: string[];
-  onChange?: (value: string | number | boolean) => void;
+  control: Control<TFieldValues>;
+  name: string;
 }
 
-const DynamicInput: React.FC<DynamicInputProps> = ({ row, value, onChange }) => {
-  switch (row.type) {
-    case 'text':
-    case 'email':
-    case 'password':
-      return (
-        <TextField
-          type={row.type}
-          placeholder={row.placeholder}
-          value={value || ''}
-          onChange={(e) => onChange?.(e.target.value)}
-          fullWidth
-          variant="outlined"
-        />
-      );
-    
-    case 'number':
-      return (
-        <TextField
-          type="number"
-          placeholder={row.placeholder}
-          value={value || ''}
-          onChange={(e) => onChange?.(e.target.value)}
-          fullWidth
-          variant="outlined"
-        />
-      );
-    
-    case 'select':
-      return (
-        <Select
-          value={value || ''}
-          onChange={(e) => onChange?.(e.target.value)}
-          fullWidth
-          displayEmpty
-        >
-          <MenuItem value="" disabled>{row.placeholder}</MenuItem>
-          {row.options?.map((option, index) => (
-            <MenuItem key={index} value={option}>
-              {option}
-            </MenuItem>
-          ))}
-        </Select>
-      );
-    
-    case 'checkbox':
-      return (
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={typeof value === 'boolean' ? value : false}
-              onChange={(e) => onChange?.(e.target.checked)}
-            />
-          }
-          label={row.placeholder}
-        />
-      );
-    
-    case 'textarea':
-      return (
-        <TextField
-          placeholder={row.placeholder}
-          value={value || ''}
-          onChange={(e) => onChange?.(e.target.value)}
-          fullWidth
-          multiline
-          rows={4}
-          variant="outlined"
-        />
-      );
-    
-    default:
-      return <TextField placeholder={row.placeholder} fullWidth />;
-  }
-};
+const DynamicInput = React.forwardRef<
+  HTMLDivElement,
+  DynamicInputProps
+>(({ row, control, name }, ref) => {
+  return (
+    <Controller
+      name={name}
+      control={control}
+      render={({ field, fieldState: { error } }) => {
+        switch (row.type) {
+          case 'text':
+            return (
+              <TextField
+                {...field}
+                type="text"
+                placeholder={row.placeholder}
+                fullWidth
+                value={field.value}
+                error={!!error}
+                helperText={error?.message}
+                variant="outlined"
+              />
+            );
+          case 'email':
+            return (
+              <TextField
+                {...field}
+                type={row.type}
+                placeholder={row.placeholder}
+                fullWidth
+                value={field.value}
+                error={!!error}
+                helperText={error?.message}
+                variant="outlined"
+              />
+            );
+          case 'password':
+            return (
+              <TextField
+                {...field}
+                type="password"
+                placeholder={row.placeholder}
+                fullWidth
+                value={field.value}
+                error={!!error}
+                helperText={error?.message}
+                variant="outlined"
+              />
+            );
+          case 'number':
+            return (
+              <TextField
+                {...field}
+                type="number"
+                placeholder={row.placeholder}
+                fullWidth
+                value={field.value}
+                error={!!error}
+                helperText={error?.message}
+                variant="outlined"
+              />
+            );
+          case 'select':
+            return (
+              <Select
+                {...field}
+                fullWidth
+                value={field.value}
+                displayEmpty
+                error={!!error}
+              >
+                <MenuItem value="">{row.placeholder}</MenuItem>
+                {row.options?.map((option, index) => (
+                  <MenuItem key={index} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </Select>
+            );
+          case 'checkbox':
+            return (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    {...field}
+                    checked={field.value || false}
+                  />
+                }
+                label={row.placeholder}
+              />
+            );
+          case 'textarea':
+            return (
+              <TextField
+                {...field}
+                placeholder={row.placeholder}
+                fullWidth
+                value={field.value}
+                multiline
+                rows={4}
+                error={!!error}
+                helperText={error?.message}
+                variant="outlined"
+              />
+            );
+          default:
+            return <TextField {...field} placeholder={row.placeholder} fullWidth />;
+        }
+      }}
+    />
+  );
+});
 
+DynamicInput.displayName = 'DynamicInput';
 export default DynamicInput;

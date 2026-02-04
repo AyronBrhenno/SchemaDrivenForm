@@ -4,10 +4,12 @@ import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import React from 'react';
 import DynamicInput from '../DynamicInput/DynamicInput';
+import { Control, FieldValues } from 'react-hook-form';
 
 export interface Row {
   id: string;
   type: string;
+  name: string;
   placeholder: string;
   options?: string[]; //used only when the input has options.
 }
@@ -25,14 +27,14 @@ export interface Module {
 
 export interface FormProps {
   modules: Module[];
+  control: Control<any>;
 }
 
-const SchemaDrivenForm: React.FC<FormProps> = ({ modules }) => {
+const SchemaDrivenForm: React.FC<FormProps> = ({ modules, control }) => {
   if (!modules?.length) return <div>No module data available.</div>;
-
+  
   return (
     <div>
-      <form>
       {modules.map(field => (
         <Paper
           key={field.id}
@@ -65,13 +67,12 @@ const SchemaDrivenForm: React.FC<FormProps> = ({ modules }) => {
                   padding: '10px',
                 }}
               >
-                <DynamicInput row={column.rows[0]} />
+                <DynamicInput row={column.rows[0]} control={control} name={column.rows[0].name} />
               </Paper>
             ))}
           </div>
         </Paper>
       ))}
-      </form>
     </div>
   );
 };
